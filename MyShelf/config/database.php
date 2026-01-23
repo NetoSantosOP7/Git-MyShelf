@@ -31,10 +31,13 @@ if (DB_HOST !== 'localhost' && DB_HOST !== '127.0.0.1') {
 }
 
 try {
-
     $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+    
+    echo "";
+
+    $options[PDO::ATTR_PERSISTENT] = false;
+    
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
 } catch (\PDOException $e) {
-
-    die("Erro na conexão com o banco: " . $e->getMessage());
+    die("Erro detalhado: " . $e->getMessage() . " | Código: " . $e->getCode());
 }
