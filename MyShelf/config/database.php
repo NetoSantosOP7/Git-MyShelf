@@ -26,6 +26,8 @@ $options = [
 
 if (DB_HOST !== 'localhost' && DB_HOST !== '127.0.0.1') {
     $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    $options[PDO::MYSQL_ATTR_SSL_CA] = true; 
+    $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4";
 }
 
 try {
