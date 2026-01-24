@@ -8,7 +8,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?= $titulo ?></title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,39 +17,56 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; height: 100vh; width: 100vw; position: fixed; }
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            width: 100%; 
+            overflow: hidden; 
+            position: fixed;
+            background: #111827;
+        }
         
-        #pdf-container { 
-            overflow: auto; 
-            height: 100vh; 
+        #viewport {
+            height: 100vh;
             width: 100vw;
-            background: #f3f4f6; 
-            display: block; 
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            -webkit-overflow-scrolling: touch;
+            background: #f3f4f6;
             padding-top: 4rem;
             padding-bottom: 4rem;
-            -webkit-overflow-scrolling: touch;
         }
 
-        @media (min-width: 768px) { #pdf-container { padding-bottom: 0; } }
-        @media (max-width: 767px) { #pdf-container { padding-top: 0; } }
+        @media (min-width: 768px) { #viewport { padding-bottom: 0; } }
+        @media (max-width: 767px) { #viewport { padding-top: 0; } }
 
-        html.dark #pdf-container { background: #1f2937; }
-        
+        html.dark #viewport { background: #1f2937; }
+
+        #canvas-wrapper {
+            display: inline-block;
+            margin: auto;
+            position: relative;
+            transform-origin: center top;
+        }
+
         #pdf-canvas {
             display: block;
-            box-shadow: 0 0 20px rgba(0,0,0,0.4);
-            margin: 10px auto;
-            image-rendering: high-quality;
-            transform-origin: 0 0; 
-            transition: transform 0.1s ease-out;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            max-width: 100%;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         .fixed-bar {
             position: fixed;
             left: 0;
             right: 0;
-            z-index: 1000;
+            z-index: 9999;
             height: 4rem;
+            background: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(10px);
             touch-action: none;
         }
     </style>
@@ -57,9 +74,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
 <body class="bg-gray-100 dark:bg-gray-900">
 
-    <div class="fixed-bar bg-gray-800 dark:bg-gray-950 text-white shadow-lg 
-                bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b border-gray-700">
-        
+    <div class="fixed-bar text-white shadow-lg bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b border-gray-700">
         <div class="flex items-center justify-between h-full px-4">
             <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-2"><i class="fas fa-times text-xl"></i></a>
 
@@ -88,13 +103,13 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         </div>
     </div>
 
-    <div id="pdf-container">
-        <div id="canvas-wrapper" style="display: inline-block; min-width: 100%; text-align: center;">
+    <div id="viewport">
+        <div id="canvas-wrapper">
             <canvas id="pdf-canvas"></canvas>
         </div>
     </div>
 
-    <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 z-[2000] flex items-center justify-center p-4">
+    <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md p-4 shadow-2xl">
             <div class="flex justify-between mb-4 border-b dark:border-gray-700 pb-2">
                 <h3 class="font-bold dark:text-white">Marcadores</h3>
@@ -107,26 +122,25 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, scale = 1.0, livroId = <?= $livro['id'] ?>, renderTimeout = null, isPinched = false;
-        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), container = document.getElementById('pdf-container');
+        let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, scale = 1.0, livroId = <?= $livro['id'] ?>;
+        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), viewport = document.getElementById('viewport');
 
         function renderPage(num) {
             if (pageRendering) return;
             pageRendering = true;
             
             pdfDoc.getPage(num).then(page => {
-                const dpr = window.devicePixelRatio || 1;
-                const viewport = page.getViewport({ scale: scale });
+                const dpr = (window.devicePixelRatio || 1) * 1.5; 
+                const vPort = page.getViewport({ scale: scale });
                 
-                canvas.width = viewport.width * dpr;
-                canvas.height = viewport.height * dpr;
-                canvas.style.width = viewport.width + 'px';
-                canvas.style.height = viewport.height + 'px';
+                canvas.width = vPort.width * dpr;
+                canvas.height = vPort.height * dpr;
+                canvas.style.width = vPort.width + 'px';
+                canvas.style.height = vPort.height + 'px';
                 
-                canvas.style.transform = "scale(1)";
                 ctx.scale(dpr, dpr);
                 
-                const renderContext = { canvasContext: ctx, viewport: viewport };
+                const renderContext = { canvasContext: ctx, viewport: vPort };
                 page.render(renderContext).promise.then(() => {
                     pageRendering = false;
                     document.getElementById('page-num-input').value = num;
@@ -140,49 +154,20 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             pdfDoc = pdf;
             document.getElementById('page-count').textContent = pdf.numPages;
             pdfDoc.getPage(pageNum).then(page => {
-                const viewport = page.getViewport({ scale: 1 });
-                const padding = window.innerWidth < 768 ? 0 : 40;
-                scale = (container.clientWidth - padding) / viewport.width;
+                const vPort = page.getViewport({ scale: 1 });
+                scale = (window.innerWidth) / vPort.width;
+                if(scale > 1.5) scale = 1.2;
                 renderPage(pageNum);
             });
         });
 
         if(document.getElementById('zoom-in')) {
             document.getElementById('zoom-in').onclick = () => { scale += 0.2; renderPage(pageNum); };
-            document.getElementById('zoom-out').onclick = () => { if(scale > 0.3) { scale -= 0.2; renderPage(pageNum); } };
+            document.getElementById('zoom-out').onclick = () => { if(scale > 0.4) { scale -= 0.2; renderPage(pageNum); } };
         }
 
-        let initialDist = null;
-        let startScale = 1.0;
-
-        container.addEventListener('touchstart', e => {
-            if (e.touches.length === 2) {
-                isPinched = true;
-                initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                startScale = scale;
-            }
-        }, { passive: true });
-
-        container.addEventListener('touchmove', e => {
-            if (e.touches.length === 2 && initialDist) {
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const factor = dist / initialDist;
-                canvas.style.transform = `scale(${factor})`;
-                scale = startScale * factor;
-            }
-        }, { passive: true });
-
-        container.addEventListener('touchend', e => {
-            if (isPinched && e.touches.length < 2) {
-                isPinched = false;
-                initialDist = null;
-                clearTimeout(renderTimeout);
-                renderTimeout = setTimeout(() => { renderPage(pageNum); }, 200);
-            }
-        });
-
-        document.getElementById('prev-page').onclick = () => { if (pageNum > 1 && !pageRendering) { pageNum--; renderPage(pageNum); } };
-        document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); } };
+        document.getElementById('prev-page').onclick = () => { if (pageNum > 1 && !pageRendering) { pageNum--; renderPage(pageNum); viewport.scrollTo(0,0); } };
+        document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); viewport.scrollTo(0,0); } };
         
         function updateZoomText() { if(document.getElementById('zoom-val')) document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%'; }
         async function salvarProgresso(p) { fetch('/leitor/salvar-progresso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ livro_id: livroId, pagina: p }) }); }
@@ -207,7 +192,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             document.getElementById('countMarcadores').textContent = d.marcadores.length;
         }
 
-        function irParaPagina(p) { pageNum = p; renderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); }
+        function irParaPagina(p) { pageNum = p; renderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); viewport.scrollTo(0,0); }
     </script>
 </body>
 </html>
