@@ -42,6 +42,8 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             box-shadow: 0 0 20px rgba(0,0,0,0.4);
             margin: 10px auto;
             image-rendering: high-quality;
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
         }
 
         .fixed-bar {
@@ -105,12 +107,22 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, scale = 1.0, livroId = <?= $livro['id'] ?>;
-        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), container = document.getElementById('pdf-container');
+        let pdfDoc = null, 
+            pageNum = <?= $livro['pagina_atual'] ?>, 
+            pageRendering = false, 
+            scale = 1.0, 
+            livroId = <?= $livro['id'] ?>,
+            renderTimeout = null,
+            isPinched = false;
 
+        const canvas = document.getElementById('pdf-canvas'), 
+              ctx = canvas.getContext('2d'), 
+              container = document.getElementById('pdf-container');
 
         function renderPage(num) {
+            if (pageRendering) return;
             pageRendering = true;
+            
             pdfDoc.getPage(num).then(page => {
                 const dpr = window.devicePixelRatio || 1;
                 const viewport = page.getViewport({ scale: scale });
@@ -119,6 +131,8 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
                 canvas.height = viewport.height * dpr;
                 canvas.style.width = viewport.width + 'px';
                 canvas.style.height = viewport.height + 'px';
+                
+                canvas.style.transform = "scale(1)";
                 
                 ctx.scale(dpr, dpr);
                 
@@ -143,32 +157,57 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             });
         });
 
-        document.getElementById('zoom-in').onclick = () => { scale += 0.2; renderPage(pageNum); };
-        document.getElementById('zoom-out').onclick = () => { if(scale > 0.3) { scale -= 0.2; renderPage(pageNum); } };
+        if(document.getElementById('zoom-in')) {
+            document.getElementById('zoom-in').onclick = () => { scale += 0.2; renderPage(pageNum); };
+            document.getElementById('zoom-out').onclick = () => { if(scale > 0.3) { scale -= 0.2; renderPage(pageNum); } };
+        }
 
         let initialDist = null;
+        let startScale = 1.0;
+
         container.addEventListener('touchstart', e => {
-            if (e.touches.length === 2) initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            if (e.touches.length === 2) {
+                isPinched = true;
+                initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                startScale = scale;
+            }
         }, { passive: true });
 
         container.addEventListener('touchmove', e => {
             if (e.touches.length === 2 && initialDist) {
                 const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const diff = dist / initialDist;
-                if (Math.abs(diff - 1) > 0.1) {
-                    scale *= diff;
-                    initialDist = dist;
-                    renderPage(pageNum);
-                }
+                const factor = dist / initialDist;
+                
+                canvas.style.transform = `scale(${factor})`;
+                scale = startScale * factor;
             }
         }, { passive: true });
+
+        container.addEventListener('touchend', e => {
+            if (isPinched && e.touches.length < 2) {
+                isPinched = false;
+                initialDist = null;
+                
+                clearTimeout(renderTimeout);
+                renderTimeout = setTimeout(() => {
+                    renderPage(pageNum);
+                }, 200);
+            }
+        });
 
         document.getElementById('prev-page').onclick = () => { if (pageNum > 1 && !pageRendering) { pageNum--; renderPage(pageNum); } };
         document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); } };
         
         function updateZoomText() { if(document.getElementById('zoom-val')) document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%'; }
-        async function salvarProgresso(p) { fetch('/leitor/salvar-progresso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ livro_id: livroId, pagina: p }) }); }
         
+        async function salvarProgresso(p) { 
+            fetch('/leitor/salvar-progresso', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ livro_id: livroId, pagina: p }) 
+            }); 
+        }
+
         document.getElementById('toggleDarkModeLeitor').onclick = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
             const d = await r.json();
@@ -185,7 +224,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             const r = await fetch(`/marcadores/listar?livro_id=${livroId}`);
             const d = await r.json();
             const lista = document.getElementById('listaMarcadores');
-            lista.innerHTML = d.marcadores.map(m => `<div onclick="irParaPagina(${m.pagina})" class="p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">${m.titulo} (p. ${m.pagina})</div>`).join('');
+            lista.innerHTML = d.marcadores.map(m => `<div onclick="irParaPagina(${m.pagina})" class="p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 font-medium dark:text-white">${m.titulo} <span class="text-xs text-gray-500">(p. ${m.pagina})</span></div>`).join('');
             document.getElementById('countMarcadores').textContent = d.marcadores.length;
         }
 
