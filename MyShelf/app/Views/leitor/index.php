@@ -18,56 +18,37 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
     <style>
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            height: 100%; 
-            width: 100%; 
-            overflow: hidden; 
-            background: #111827;
-            overscroll-behavior: none; 
+            margin: 0; padding: 0; height: 100%; width: 100%; 
+            overflow: hidden; background: #111827; overscroll-behavior: none; 
         }
         
         #viewport {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: auto;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            background: #f3f4f6;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            overflow: auto; display: flex; justify-content: center;
+            align-items: flex-start; background: #f3f4f6;
             -webkit-overflow-scrolling: touch;
         }
 
-        @media (min-width: 768px) { #viewport { padding-top: 4rem; } }
-        @media (max-width: 767px) { #viewport { padding-bottom: 4rem; } }
-
         html.dark #viewport { background: #1f2937; }
 
-        #canvas-wrapper {
-            display: inline-block;
-            margin: 20px auto;
-            transform-origin: top center;
-        }
-
-        #pdf-canvas {
-            display: block;
-            box-shadow: 0 0 30px rgba(0,0,0,0.3);
-            max-width: 100%;
-        }
+        #canvas-wrapper { display: inline-block; margin: 20px auto; transform-origin: top center; }
+        #pdf-canvas { display: block; box-shadow: 0 0 30px rgba(0,0,0,0.3); max-width: 100%; }
 
         .fixed-bar {
-            position: fixed;
-            left: 0;
-            right: 0;
-            z-index: 9999;
-            height: 4rem;
-            background: #1f2937;
-            border-color: #374151;
-            transform: translateZ(0); 
-            touch-action: none; 
+            position: fixed; left: 0; width: 100%; z-index: 9999;
+            height: 4rem; background: #1f2937; color: white;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+            border-top: 1px solid #374151;
+        }
+
+        @media (min-width: 768px) { 
+            .fixed-bar { top: 0; bottom: auto; border-top: none; border-bottom: 1px solid #374151; }
+            #viewport { padding-top: 4rem; }
+        }
+        @media (max-width: 767px) { 
+            .fixed-bar { bottom: 0; top: auto; }
+            #viewport { padding-bottom: 4rem; }
         }
 
         .dark .fixed-bar { background: #030712; }
@@ -76,32 +57,30 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
 <body class="bg-gray-100 dark:bg-gray-900">
 
-    <div class="fixed-bar text-white shadow-lg bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b">
-        <div class="flex items-center justify-between h-full px-4">
-            <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-2"><i class="fas fa-times text-xl"></i></a>
+    <div id="barra-ferramentas" class="fixed-bar">
+        <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-2"><i class="fas fa-times text-xl"></i></a>
 
-            <div class="flex items-center space-x-2">
-                <button id="prev-page" class="p-3"><i class="fas fa-chevron-left text-lg"></i></button>
-                <div class="bg-gray-700 dark:bg-gray-900 rounded px-3 py-1 font-mono text-sm">
-                    <input type="number" id="page-num-input" class="w-8 bg-transparent text-center focus:outline-none" value="<?= $livro['pagina_atual'] ?>">
-                    <span>/ <span id="page-count">0</span></span>
-                </div>
-                <button id="next-page" class="p-3"><i class="fas fa-chevron-right text-lg"></i></button>
+        <div class="flex items-center space-x-2">
+            <button id="prev-page" class="p-3"><i class="fas fa-chevron-left text-lg"></i></button>
+            <div class="bg-gray-700 dark:bg-gray-900 rounded px-3 py-1 font-mono text-sm">
+                <input type="number" id="page-num-input" class="w-8 bg-transparent text-center focus:outline-none" value="<?= $livro['pagina_atual'] ?>">
+                <span>/ <span id="page-count">0</span></span>
             </div>
+            <button id="next-page" class="p-3"><i class="fas fa-chevron-right text-lg"></i></button>
+        </div>
 
-            <div class="flex items-center space-x-1">
-                <div class="hidden md:flex items-center border-r border-gray-600 pr-2 mr-2">
-                    <button id="zoom-out" class="p-2 hover:text-blue-400"><i class="fas fa-search-minus"></i></button>
-                    <span id="zoom-val" class="text-xs w-10 text-center">100%</span>
-                    <button id="zoom-in" class="p-2 hover:text-blue-400"><i class="fas fa-search-plus"></i></button>
-                </div>
-                <button id="adicionarMarcador" class="p-2"><i class="fas fa-bookmark"></i></button>
-                <button id="verMarcadores" class="p-2 relative">
-                    <i class="fas fa-list"></i>
-                    <span id="countMarcadores" class="absolute top-1 right-0 bg-blue-600 text-[10px] px-1 rounded-full">0</span>
-                </button>
-                <button id="toggleDarkModeLeitor" class="p-2"><i class="fas fa-<?= $darkMode ? 'sun' : 'moon' ?>"></i></button>
+        <div class="flex items-center space-x-1">
+            <div class="hidden md:flex items-center border-r border-gray-600 pr-2 mr-2">
+                <button id="zoom-out" class="p-2 hover:text-blue-400"><i class="fas fa-search-minus"></i></button>
+                <span id="zoom-val" class="text-xs w-10 text-center">100%</span>
+                <button id="zoom-in" class="p-2 hover:text-blue-400"><i class="fas fa-search-plus"></i></button>
             </div>
+            <button id="adicionarMarcador" class="p-2 hover:text-yellow-500"><i class="fas fa-bookmark text-lg"></i></button>
+            <button id="verMarcadores" class="p-2 relative">
+                <i class="fas fa-list text-lg"></i>
+                <span id="countMarcadores" class="absolute top-1 right-0 bg-blue-600 text-[10px] px-1 rounded-full">0</span>
+            </button>
+            <button id="toggleDarkModeLeitor" class="p-2"><i class="fas fa-<?= $darkMode ? 'sun' : 'moon' ?> text-lg"></i></button>
         </div>
     </div>
 
@@ -125,23 +104,35 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, scale = 1.0, livroId = <?= $livro['id'] ?>;
-        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), viewport = document.getElementById('viewport');
+        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), viewport = document.getElementById('viewport'), barra = document.getElementById('barra-ferramentas');
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const vv = window.visualViewport;
+                barra.style.bottom = `${window.innerHeight - vv.height - vv.offsetTop}px`;
+                barra.style.left = `${vv.offsetLeft}px`;
+                barra.style.width = `${vv.width}px`;
+                barra.style.transform = `scale(${1 / vv.scale})`;
+                barra.style.transformOrigin = 'bottom left';
+            });
+            window.visualViewport.addEventListener('scroll', () => {
+                const vv = window.visualViewport;
+                barra.style.bottom = `${window.innerHeight - vv.height - vv.offsetTop}px`;
+                barra.style.left = `${vv.offsetLeft}px`;
+            });
+        }
 
         function renderPage(num) {
             if (pageRendering) return;
             pageRendering = true;
-            
             pdfDoc.getPage(num).then(page => {
                 const dpr = (window.devicePixelRatio || 1) * 1.5; 
                 const vPort = page.getViewport({ scale: scale });
-                
                 canvas.width = vPort.width * dpr;
                 canvas.height = vPort.height * dpr;
                 canvas.style.width = vPort.width + 'px';
                 canvas.style.height = vPort.height + 'px';
-                
                 ctx.scale(dpr, dpr);
-                
                 const renderContext = { canvasContext: ctx, viewport: vPort };
                 page.render(renderContext).promise.then(() => {
                     pageRendering = false;
@@ -157,50 +148,75 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             document.getElementById('page-count').textContent = pdf.numPages;
             pdfDoc.getPage(pageNum).then(page => {
                 const vPort = page.getViewport({ scale: 1 });
-                const windowWidth = window.innerWidth;
-                scale = (windowWidth < 768) ? (windowWidth / vPort.width) : 1.2;
+                scale = (window.innerWidth < 768) ? (window.innerWidth / vPort.width) : 1.2;
                 renderPage(pageNum);
+                carregarMarcadores();
             });
         });
+
 
         if(document.getElementById('zoom-in')) {
             document.getElementById('zoom-in').onclick = () => { scale += 0.2; renderPage(pageNum); };
             document.getElementById('zoom-out').onclick = () => { if(scale > 0.4) { scale -= 0.2; renderPage(pageNum); } };
         }
 
+
+        document.getElementById('adicionarMarcador').onclick = async () => {
+            const tituloMarcador = prompt("Título do marcador:", "Página " + pageNum);
+            if (tituloMarcador) {
+                const resp = await fetch('/marcadores/adicionar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ livro_id: livroId, pagina: pageNum, titulo: tituloMarcador })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    alert("Marcador adicionado!");
+                    carregarMarcadores();
+                }
+            }
+        };
+
+        async function carregarMarcadores() {
+            const r = await fetch(`/marcadores/listar?livro_id=${livroId}`);
+            const d = await r.json();
+            const lista = document.getElementById('listaMarcadores');
+            const count = document.getElementById('countMarcadores');
+            if (d.marcadores) {
+                lista.innerHTML = d.marcadores.map(m => `
+                    <div class="flex justify-between items-center p-3 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <div onclick="irParaPagina(${m.pagina})" class="cursor-pointer font-medium dark:text-white">${m.titulo} (p. ${m.pagina})</div>
+                        <button onclick="eliminarMarcador(${m.id})" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                    </div>`).join('');
+                count.textContent = d.marcadores.length;
+            }
+        }
+
+        async function eliminarMarcador(id) {
+            if (confirm("Deseja eliminar este marcador?")) {
+                const r = await fetch(`/marcadores/eliminar?id=${id}`, { method: 'POST' });
+                const d = await r.json();
+                if (d.success) carregarMarcadores();
+            }
+        }
+
         document.getElementById('prev-page').onclick = () => { if (pageNum > 1 && !pageRendering) { pageNum--; renderPage(pageNum); viewport.scrollTo(0,0); } };
         document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); viewport.scrollTo(0,0); } };
         
         function updateZoomText() { if(document.getElementById('zoom-val')) document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%'; }
-        
-        async function salvarProgresso(p) { 
-            fetch('/leitor/salvar-progresso', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ livro_id: livroId, pagina: p }) 
-            }); 
-        }
+        async function salvarProgresso(p) { fetch('/leitor/salvar-progresso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ livro_id: livroId, pagina: p }) }); }
 
         document.getElementById('toggleDarkModeLeitor').onclick = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
             const d = await r.json();
             if (d.success) {
                 document.documentElement.classList.toggle('dark');
-                document.querySelector('#toggleDarkModeLeitor i').className = d.dark_mode ? 'fas fa-sun' : 'fas fa-moon';
+                document.querySelector('#toggleDarkModeLeitor i').className = d.dark_mode ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
             }
         };
 
         document.getElementById('verMarcadores').onclick = () => { document.getElementById('modalMarcadores').classList.remove('hidden'); carregarMarcadores(); };
         document.getElementById('fecharModalMarcadores').onclick = () => document.getElementById('modalMarcadores').classList.add('hidden');
-        
-        async function carregarMarcadores() {
-            const r = await fetch(`/marcadores/listar?livro_id=${livroId}`);
-            const d = await r.json();
-            const lista = document.getElementById('listaMarcadores');
-            lista.innerHTML = d.marcadores.map(m => `<div onclick="irParaPagina(${m.pagina})" class="p-3 border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 font-medium dark:text-white">${m.titulo} <span class="text-xs text-gray-500">(p. ${m.pagina})</span></div>`).join('');
-            document.getElementById('countMarcadores').textContent = d.marcadores.length;
-        }
-
         function irParaPagina(p) { pageNum = p; renderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); viewport.scrollTo(0,0); }
     </script>
 </body>
