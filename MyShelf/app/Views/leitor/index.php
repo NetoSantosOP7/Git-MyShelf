@@ -60,7 +60,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <div class="bg-gray-800 dark:bg-gray-950 text-white px-2 sm:px-4 py-3 flex items-center justify-between shadow-lg h-16 relative">
 
         <div class="flex items-center space-x-2 sm:space-x-4 overflow-hidden">
-            <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="hover:text-gray-300" title="Fechar">
+            <a href="livros/detalhes?id=<?= $livro['id'] ?>" class="hover:text-gray-300" title="Fechar">
                 <i class="fas fa-times text-xl"></i>
             </a>
             <div class="overflow-hidden">
