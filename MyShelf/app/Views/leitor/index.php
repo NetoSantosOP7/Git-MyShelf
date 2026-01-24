@@ -24,9 +24,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             height: 100vh; 
             width: 100vw;
             background: #f3f4f6; 
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            display: block; 
             padding-top: 4rem;
             padding-bottom: 4rem;
             -webkit-overflow-scrolling: touch;
@@ -42,7 +40,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             box-shadow: 0 0 20px rgba(0,0,0,0.4);
             margin: 10px auto;
             image-rendering: high-quality;
-            transform-origin: top center;
+            transform-origin: 0 0; 
             transition: transform 0.1s ease-out;
         }
 
@@ -91,11 +89,13 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     </div>
 
     <div id="pdf-container">
-        <canvas id="pdf-canvas"></canvas>
+        <div id="canvas-wrapper" style="display: inline-block; min-width: 100%; text-align: center;">
+            <canvas id="pdf-canvas"></canvas>
+        </div>
     </div>
 
     <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 z-[2000] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md p-4 shadow-2xl">
             <div class="flex justify-between mb-4 border-b dark:border-gray-700 pb-2">
                 <h3 class="font-bold dark:text-white">Marcadores</h3>
                 <button id="fecharModalMarcadores"><i class="fas fa-times text-xl"></i></button>
@@ -107,17 +107,8 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let pdfDoc = null, 
-            pageNum = <?= $livro['pagina_atual'] ?>, 
-            pageRendering = false, 
-            scale = 1.0, 
-            livroId = <?= $livro['id'] ?>,
-            renderTimeout = null,
-            isPinched = false;
-
-        const canvas = document.getElementById('pdf-canvas'), 
-              ctx = canvas.getContext('2d'), 
-              container = document.getElementById('pdf-container');
+        let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, scale = 1.0, livroId = <?= $livro['id'] ?>, renderTimeout = null, isPinched = false;
+        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), container = document.getElementById('pdf-container');
 
         function renderPage(num) {
             if (pageRendering) return;
@@ -133,7 +124,6 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
                 canvas.style.height = viewport.height + 'px';
                 
                 canvas.style.transform = "scale(1)";
-                
                 ctx.scale(dpr, dpr);
                 
                 const renderContext = { canvasContext: ctx, viewport: viewport };
@@ -177,7 +167,6 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             if (e.touches.length === 2 && initialDist) {
                 const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
                 const factor = dist / initialDist;
-                
                 canvas.style.transform = `scale(${factor})`;
                 scale = startScale * factor;
             }
@@ -187,11 +176,8 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             if (isPinched && e.touches.length < 2) {
                 isPinched = false;
                 initialDist = null;
-                
                 clearTimeout(renderTimeout);
-                renderTimeout = setTimeout(() => {
-                    renderPage(pageNum);
-                }, 200);
+                renderTimeout = setTimeout(() => { renderPage(pageNum); }, 200);
             }
         });
 
@@ -199,14 +185,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); } };
         
         function updateZoomText() { if(document.getElementById('zoom-val')) document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%'; }
-        
-        async function salvarProgresso(p) { 
-            fetch('/leitor/salvar-progresso', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ livro_id: livroId, pagina: p }) 
-            }); 
-        }
+        async function salvarProgresso(p) { fetch('/leitor/salvar-progresso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ livro_id: livroId, pagina: p }) }); }
 
         document.getElementById('toggleDarkModeLeitor').onclick = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
