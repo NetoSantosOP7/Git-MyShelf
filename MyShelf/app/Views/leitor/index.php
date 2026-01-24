@@ -8,7 +8,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title><?= $titulo ?></title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,33 +20,63 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <style>
-        body { overflow: hidden; background: #111827; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            height: 100vh; 
+            width: 100vw;
+            position: fixed;
+        }
         
         #pdf-container { 
-            overflow: auto; /* Permite scroll horizontal e vertical para o zoom */
-            height: 100vh; 
+            overflow: auto; 
+            height: 100%; 
+            width: 100%;
             background: #f3f4f6; 
-            padding-top: 4rem; 
-            padding-bottom: 4rem;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+            -webkit-overflow-scrolling: touch;
         }
-        @media (min-width: 768px) { #pdf-container { padding-bottom: 1rem; } }
-        @media (max-width: 767px) { #pdf-container { padding-top: 1rem; } }
+
+        @media (min-width: 768px) { 
+            #pdf-container { 
+                padding-bottom: 0; 
+                justify-content: center; 
+            } 
+        }
+
+        @media (max-width: 767px) { 
+            #pdf-container { 
+                padding-top: 0; 
+            } 
+        }
 
         html.dark #pdf-container { background: #1f2937; }
         
         #pdf-canvas {
             display: block;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            max-width: none; /* Importante para o zoom funcionar */
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            margin: 10px auto;
+            transform-origin: top left;
+        }
+
+        .fixed-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            touch-action: none;
         }
     </style>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900">
 
-    <div class="fixed left-0 right-0 z-50 bg-gray-800 dark:bg-gray-950 text-white shadow-lg h-16 
+    <div class="fixed-bar bg-gray-800 dark:bg-gray-950 text-white shadow-lg h-16 
                 bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b border-gray-700">
         
         <div class="flex items-center justify-between h-full px-2 sm:px-4">
@@ -58,9 +88,9 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             <div class="flex items-center space-x-1 sm:space-x-4">
                 <button id="prev-page" class="p-3 text-lg"><i class="fas fa-chevron-left"></i></button>
                 
-                <div class="flex items-center bg-gray-700 dark:bg-gray-900 rounded px-2 py-1 font-mono">
+                <div class="flex items-center bg-gray-700 dark:bg-gray-900 rounded px-2 py-1 font-mono text-sm">
                     <input type="number" id="page-num-input" class="w-10 bg-transparent text-center focus:outline-none" value="<?= $livro['pagina_atual'] ?>">
-                    <span class="text-gray-500">/</span>
+                    <span>/</span>
                     <span id="page-count">0</span>
                 </div>
 
@@ -68,10 +98,11 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             </div>
 
             <div class="flex items-center">
-                <button id="zoom-btn" class="p-3 hover:text-blue-400" title="Ajustar Zoom">
-                    <i class="fas fa-magnifying-glass-plus text-lg"></i>
-                    <span id="zoom-val" class="text-[10px] ml-1">Auto</span>
-                </button>
+                <div class="hidden md:flex items-center border-r border-gray-600 pr-2 mr-2">
+                    <button id="zoom-out" class="p-2 hover:text-blue-400"><i class="fas fa-search-minus"></i></button>
+                    <span id="zoom-val" class="text-xs w-12 text-center">100%</span>
+                    <button id="zoom-in" class="p-2 hover:text-blue-400"><i class="fas fa-search-plus"></i></button>
+                </div>
                 
                 <button id="adicionarMarcador" class="p-3 hover:text-yellow-500"><i class="fas fa-bookmark text-lg"></i></button>
 
@@ -91,13 +122,13 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         <canvas id="pdf-canvas"></canvas>
     </div>
 
-    <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
+    <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[2000] p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md overflow-hidden">
             <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
                 <h3 class="font-bold dark:text-white">Marcadores</h3>
                 <button id="fecharModalMarcadores" class="text-gray-400 p-1"><i class="fas fa-times text-xl"></i></button>
             </div>
-            <div id="listaMarcadores" class="p-2 max-h-[60vh] overflow-y-auto space-y-1"></div>
+            <div id="listaMarcadores" class="p-2 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
 
@@ -114,24 +145,24 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
               ctx = canvas.getContext('2d'),
               container = document.getElementById('pdf-container');
 
-        // Carregar Documento
         pdfjsLib.getDocument('/<?= $livro['arquivo_pdf'] ?>').promise.then(pdf => {
             pdfDoc = pdf;
             document.getElementById('page-count').textContent = pdf.numPages;
-            autoScale(); // Define zoom inicial baseado na tela
-            renderPage(pageNum);
-        });
-
-        // Função de Escala Automática
-        function autoScale() {
-            const containerWidth = container.clientWidth - 40;
+            
+            // Ajuste inicial inteligente
             pdfDoc.getPage(pageNum).then(page => {
                 const viewport = page.getViewport({ scale: 1 });
-                scale = containerWidth / viewport.width;
-                if (scale > 1.5) scale = 1.5; // Limite para não pixelar
-                document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%';
+                const containerWidth = container.clientWidth - 20;
+                // No mobile, força enquadrar na largura
+                if(window.innerWidth < 768) {
+                    scale = containerWidth / viewport.width;
+                } else {
+                    scale = 1.2;
+                }
+                updateZoomText();
+                renderPage(pageNum);
             });
-        }
+        });
 
         function renderPage(num) {
             pageRendering = true;
@@ -149,22 +180,17 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             });
         }
 
-        // Lógica do Botão de Zoom Cíclico
-        document.getElementById('zoom-btn').onclick = () => {
-            if (scale < 1.0) scale = 1.2;
-            else if (scale < 1.5) scale = 1.8;
-            else if (scale < 2.0) scale = 0.8;
-            else scale = 1.0;
-            
-            document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%';
-            renderPage(pageNum);
-        };
+        function updateZoomText() {
+            const el = document.getElementById('zoom-val');
+            if(el) el.textContent = Math.round(scale * 100) + '%';
+        }
 
-        // Navegação
+        document.getElementById('zoom-in').onclick = () => { scale += 0.2; updateZoomText(); renderPage(pageNum); };
+        document.getElementById('zoom-out').onclick = () => { if(scale > 0.4) scale -= 0.2; updateZoomText(); renderPage(pageNum); };
+
         document.getElementById('prev-page').onclick = () => { if (pageNum > 1) { pageNum--; renderPage(pageNum); } };
         document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); } };
         
-        // Marcadores e Dark Mode (mantidos do anterior)
         async function salvarProgresso(p) {
             fetch('/leitor/salvar-progresso', {
                 method: 'POST',
@@ -173,8 +199,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             });
         }
 
-        // Script de Marcadores e Tema simplificado
-        const toggleDark = async () => {
+        document.getElementById('toggleDarkModeLeitor').onclick = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
             const d = await r.json();
             if (d.success) {
@@ -182,9 +207,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
                 document.querySelector('#toggleDarkModeLeitor i').className = d.dark_mode ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
             }
         };
-        document.getElementById('toggleDarkModeLeitor').onclick = toggleDark;
 
-        // Modal Marcadores
         document.getElementById('verMarcadores').onclick = () => {
             document.getElementById('modalMarcadores').classList.remove('hidden');
             carregarMarcadores();
@@ -207,7 +230,6 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
         function irParaPagina(p) { pageNum = p; renderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); }
 
-        // Atalhos teclado
         document.addEventListener('keydown', e => {
             if (e.key === 'ArrowLeft') document.getElementById('prev-page').click();
             if (e.key === 'ArrowRight') document.getElementById('next-page').click();
