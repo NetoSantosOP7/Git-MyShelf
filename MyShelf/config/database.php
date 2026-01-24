@@ -30,14 +30,18 @@ if (DB_HOST !== 'localhost' && DB_HOST !== '127.0.0.1') {
     $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4";
 }
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 try {
     $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-    
-    echo "";
 
-    $options[PDO::ATTR_PERSISTENT] = false;
+    echo "DEBUG CONEXÃO: " . DB_HOST . " | Porta: " . DB_PORT . " | Banco: " . DB_NAME . "<br>";
     
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    
+    echo "CONECTADO COM SUCESSO!";
 } catch (\PDOException $e) {
-    die("Erro detalhado: " . $e->getMessage() . " | Código: " . $e->getCode());
+    echo "ERRO DE CONEXÃO: " . $e->getMessage();
+    exit;
 }
