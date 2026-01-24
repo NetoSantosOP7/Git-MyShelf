@@ -23,40 +23,39 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             height: 100%; 
             width: 100%; 
             overflow: hidden; 
-            position: fixed;
             background: #111827;
+            overscroll-behavior: none; 
         }
         
         #viewport {
-            height: 100vh;
-            width: 100vw;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             overflow: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            -webkit-overflow-scrolling: touch;
             background: #f3f4f6;
-            padding-top: 4rem;
-            padding-bottom: 4rem;
+            -webkit-overflow-scrolling: touch;
         }
 
-        @media (min-width: 768px) { #viewport { padding-bottom: 0; } }
-        @media (max-width: 767px) { #viewport { padding-top: 0; } }
+        @media (min-width: 768px) { #viewport { padding-top: 4rem; } }
+        @media (max-width: 767px) { #viewport { padding-bottom: 4rem; } }
 
         html.dark #viewport { background: #1f2937; }
 
         #canvas-wrapper {
             display: inline-block;
-            margin: auto;
-            position: relative;
-            transform-origin: center top;
+            margin: 20px auto;
+            transform-origin: top center;
         }
 
         #pdf-canvas {
             display: block;
             box-shadow: 0 0 30px rgba(0,0,0,0.3);
             max-width: 100%;
-            image-rendering: -webkit-optimize-contrast;
         }
 
         .fixed-bar {
@@ -65,16 +64,19 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             right: 0;
             z-index: 9999;
             height: 4rem;
-            background: rgba(31, 41, 55, 0.95);
-            backdrop-filter: blur(10px);
-            touch-action: none;
+            background: #1f2937;
+            border-color: #374151;
+            transform: translateZ(0); 
+            touch-action: none; 
         }
+
+        .dark .fixed-bar { background: #030712; }
     </style>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900">
 
-    <div class="fixed-bar text-white shadow-lg bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b border-gray-700">
+    <div class="fixed-bar text-white shadow-lg bottom-0 md:bottom-auto md:top-0 border-t md:border-t-0 md:border-b">
         <div class="flex items-center justify-between h-full px-4">
             <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-2"><i class="fas fa-times text-xl"></i></a>
 
@@ -155,8 +157,8 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             document.getElementById('page-count').textContent = pdf.numPages;
             pdfDoc.getPage(pageNum).then(page => {
                 const vPort = page.getViewport({ scale: 1 });
-                scale = (window.innerWidth) / vPort.width;
-                if(scale > 1.5) scale = 1.2;
+                const windowWidth = window.innerWidth;
+                scale = (windowWidth < 768) ? (windowWidth / vPort.width) : 1.2;
                 renderPage(pageNum);
             });
         });
@@ -170,7 +172,14 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages && !pageRendering) { pageNum++; renderPage(pageNum); viewport.scrollTo(0,0); } };
         
         function updateZoomText() { if(document.getElementById('zoom-val')) document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%'; }
-        async function salvarProgresso(p) { fetch('/leitor/salvar-progresso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ livro_id: livroId, pagina: p }) }); }
+        
+        async function salvarProgresso(p) { 
+            fetch('/leitor/salvar-progresso', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ livro_id: livroId, pagina: p }) 
+            }); 
+        }
 
         document.getElementById('toggleDarkModeLeitor').onclick = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
