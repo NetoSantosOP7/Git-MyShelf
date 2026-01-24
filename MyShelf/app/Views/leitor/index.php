@@ -40,6 +40,7 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 1rem; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
             border-top: 1px solid #374151;
+            box-sizing: border-box;
         }
 
         @media (min-width: 768px) { 
@@ -107,19 +108,23 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), viewport = document.getElementById('viewport'), barra = document.getElementById('barra-ferramentas');
 
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => {
+            const ajustarBarra = () => {
                 const vv = window.visualViewport;
-                barra.style.bottom = `${window.innerHeight - vv.height - vv.offsetTop}px`;
-                barra.style.left = `${vv.offsetLeft}px`;
-                barra.style.width = `${vv.width}px`;
-                barra.style.transform = `scale(${1 / vv.scale})`;
+                const offsetBot = (window.innerHeight - vv.height - vv.offsetTop);
+                
+                barra.style.width = vv.width + 'px';
+                barra.style.left = vv.offsetLeft + 'px';
+                barra.style.bottom = offsetBot + 'px';
+                
+                const scaleInv = 1 / vv.scale;
+                barra.style.transform = `scale(${scaleInv})`;
                 barra.style.transformOrigin = 'bottom left';
-            });
-            window.visualViewport.addEventListener('scroll', () => {
-                const vv = window.visualViewport;
-                barra.style.bottom = `${window.innerHeight - vv.height - vv.offsetTop}px`;
-                barra.style.left = `${vv.offsetLeft}px`;
-            });
+                
+                barra.style.width = (vv.width * vv.scale) + 'px';
+            };
+
+            window.visualViewport.addEventListener('resize', ajustarBarra);
+            window.visualViewport.addEventListener('scroll', ajustarBarra);
         }
 
         function renderPage(num) {
@@ -154,12 +159,10 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             });
         });
 
-
         if(document.getElementById('zoom-in')) {
             document.getElementById('zoom-in').onclick = () => { scale += 0.2; renderPage(pageNum); };
             document.getElementById('zoom-out').onclick = () => { if(scale > 0.4) { scale -= 0.2; renderPage(pageNum); } };
         }
-
 
         document.getElementById('adicionarMarcador').onclick = async () => {
             const tituloMarcador = prompt("Título do marcador:", "Página " + pageNum);
@@ -171,7 +174,6 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    alert("Marcador adicionado!");
                     carregarMarcadores();
                 }
             }
