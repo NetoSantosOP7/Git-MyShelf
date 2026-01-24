@@ -8,36 +8,39 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $titulo ?></title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-        }
+        tailwind.config = { darkMode: 'class' }
     </script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <style>
-        * { transition: background-color 0.3s ease, color 0.3s ease; }
-        body { overflow: hidden; touch-action: manipulation; }
-        #pdf-canvas { max-width: 100%; margin: 0 auto; display: block; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        body { overflow: hidden; background: #111827; }
         
         #pdf-container { 
-            overflow-y: auto; 
+            overflow: auto; /* Permite scroll horizontal e vertical para o zoom */
             height: 100vh; 
             background: #f3f4f6; 
             padding-top: 4rem; 
             padding-bottom: 4rem;
+            display: flex;
+            justify-content: center;
         }
         @media (min-width: 768px) { #pdf-container { padding-bottom: 1rem; } }
         @media (max-width: 767px) { #pdf-container { padding-top: 1rem; } }
 
         html.dark #pdf-container { background: #1f2937; }
-        html.dark body { background: #111827; }
+        
+        #pdf-canvas {
+            display: block;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            max-width: none; /* Importante para o zoom funcionar */
+        }
     </style>
 </head>
 
@@ -48,39 +51,36 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
         
         <div class="flex items-center justify-between h-full px-2 sm:px-4">
             
-            <div class="flex-none">
-                <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-3 hover:text-gray-300" title="Fechar">
-                    <i class="fas fa-times text-xl"></i>
-                </a>
-            </div>
+            <a href="/livros/detalhes?id=<?= $livro['id'] ?>" class="p-3 hover:text-gray-300">
+                <i class="fas fa-times text-xl"></i>
+            </a>
 
             <div class="flex items-center space-x-1 sm:space-x-4">
-                <button id="prev-page" class="p-3 text-lg active:scale-95"><i class="fas fa-chevron-left"></i></button>
+                <button id="prev-page" class="p-3 text-lg"><i class="fas fa-chevron-left"></i></button>
                 
-                <div class="flex items-center bg-gray-700 dark:bg-gray-900 rounded px-2 py-1">
-                    <input type="number" id="page-num-input" class="w-10 bg-transparent text-center focus:outline-none text-sm" value="<?= $livro['pagina_atual'] ?>">
-                    <span class="text-gray-500 mx-1">/</span>
-                    <span id="page-count" class="text-sm">0</span>
+                <div class="flex items-center bg-gray-700 dark:bg-gray-900 rounded px-2 py-1 font-mono">
+                    <input type="number" id="page-num-input" class="w-10 bg-transparent text-center focus:outline-none" value="<?= $livro['pagina_atual'] ?>">
+                    <span class="text-gray-500">/</span>
+                    <span id="page-count">0</span>
                 </div>
 
-                <button id="next-page" class="p-3 text-lg active:scale-95"><i class="fas fa-chevron-right"></i></button>
+                <button id="next-page" class="p-3 text-lg"><i class="fas fa-chevron-right"></i></button>
             </div>
 
             <div class="flex items-center">
-                <button id="zoom-in" class="p-3 hover:text-blue-400 active:scale-95" title="Aumentar Zoom">
-                    <i class="fas fa-search-plus text-lg"></i>
+                <button id="zoom-btn" class="p-3 hover:text-blue-400" title="Ajustar Zoom">
+                    <i class="fas fa-magnifying-glass-plus text-lg"></i>
+                    <span id="zoom-val" class="text-[10px] ml-1">Auto</span>
                 </button>
                 
-                <button id="adicionarMarcador" class="p-3 hover:text-yellow-500 active:scale-95" title="Marcar Página">
-                    <i class="fas fa-bookmark text-lg"></i>
-                </button>
+                <button id="adicionarMarcador" class="p-3 hover:text-yellow-500"><i class="fas fa-bookmark text-lg"></i></button>
 
-                <button id="verMarcadores" class="p-3 hover:text-blue-400 active:scale-95 relative" title="Ver Marcadores">
+                <button id="verMarcadores" class="p-3 hover:text-blue-400 relative">
                     <i class="fas fa-list text-lg"></i>
                     <span id="countMarcadores" class="absolute top-2 right-1 bg-blue-600 text-[10px] px-1 rounded-full">0</span>
                 </button>
 
-                <button id="toggleDarkModeLeitor" class="p-3 hover:text-yellow-400 active:scale-95" title="Alternar Tema">
+                <button id="toggleDarkModeLeitor" class="p-3 hover:text-yellow-400">
                     <i class="fas fa-<?= $darkMode ? 'sun' : 'moon' ?> text-lg"></i>
                 </button>
             </div>
@@ -89,10 +89,6 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
 
     <div id="pdf-container">
         <canvas id="pdf-canvas"></canvas>
-        <div id="loading" class="text-center py-20">
-            <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
-            <p class="text-gray-500 mt-4">Abrindo livro...</p>
-        </div>
     </div>
 
     <div id="modalMarcadores" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
@@ -108,18 +104,34 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        let pdfDoc = null, pageNum = <?= $livro['pagina_atual'] ?>, pageRendering = false, pageNumPending = null, scale = 1.1, livroId = <?= $livro['id'] ?>;
-        const canvas = document.getElementById('pdf-canvas'), ctx = canvas.getContext('2d'), loading = document.getElementById('loading');
+        let pdfDoc = null, 
+            pageNum = <?= $livro['pagina_atual'] ?>, 
+            pageRendering = false, 
+            scale = 1.0, 
+            livroId = <?= $livro['id'] ?>;
 
-        // Detectar se é mobile para ajustar o zoom inicial
-        if(window.innerWidth < 768) scale = 0.8;
+        const canvas = document.getElementById('pdf-canvas'),
+              ctx = canvas.getContext('2d'),
+              container = document.getElementById('pdf-container');
 
+        // Carregar Documento
         pdfjsLib.getDocument('/<?= $livro['arquivo_pdf'] ?>').promise.then(pdf => {
             pdfDoc = pdf;
             document.getElementById('page-count').textContent = pdf.numPages;
-            loading.style.display = 'none';
+            autoScale(); // Define zoom inicial baseado na tela
             renderPage(pageNum);
         });
+
+        // Função de Escala Automática
+        function autoScale() {
+            const containerWidth = container.clientWidth - 40;
+            pdfDoc.getPage(pageNum).then(page => {
+                const viewport = page.getViewport({ scale: 1 });
+                scale = containerWidth / viewport.width;
+                if (scale > 1.5) scale = 1.5; // Limite para não pixelar
+                document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%';
+            });
+        }
 
         function renderPage(num) {
             pageRendering = true;
@@ -127,34 +139,32 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
                 const viewport = page.getViewport({ scale: scale });
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
+                
                 const renderContext = { canvasContext: ctx, viewport: viewport };
                 page.render(renderContext).promise.then(() => {
                     pageRendering = false;
-                    if (pageNumPending !== null) { renderPage(pageNumPending); pageNumPending = null; }
                     document.getElementById('page-num-input').value = num;
                     salvarProgresso(num);
                 });
             });
         }
 
-        function queueRenderPage(num) { pageRendering ? pageNumPending = num : renderPage(num); }
-
-        document.getElementById('prev-page').onclick = () => { if (pageNum > 1) { pageNum--; queueRenderPage(pageNum); } };
-        document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages) { pageNum++; queueRenderPage(pageNum); } };
-        document.getElementById('page-num-input').onchange = e => { 
-            let n = parseInt(e.target.value); 
-            if (n >= 1 && n <= pdfDoc.numPages) { pageNum = n; queueRenderPage(n); }
-        };
-
-        // Botão de Zoom Único (Ciclo: 1.0 -> 1.5 -> 2.0 -> 0.8)
-        document.getElementById('zoom-in').onclick = () => {
-            if (scale < 1.1) scale = 1.1;
-            else if (scale < 1.6) scale = 1.6;
-            else if (scale < 2.1) scale = 2.1;
-            else scale = 0.8;
+        // Lógica do Botão de Zoom Cíclico
+        document.getElementById('zoom-btn').onclick = () => {
+            if (scale < 1.0) scale = 1.2;
+            else if (scale < 1.5) scale = 1.8;
+            else if (scale < 2.0) scale = 0.8;
+            else scale = 1.0;
+            
+            document.getElementById('zoom-val').textContent = Math.round(scale * 100) + '%';
             renderPage(pageNum);
         };
 
+        // Navegação
+        document.getElementById('prev-page').onclick = () => { if (pageNum > 1) { pageNum--; renderPage(pageNum); } };
+        document.getElementById('next-page').onclick = () => { if (pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); } };
+        
+        // Marcadores e Dark Mode (mantidos do anterior)
         async function salvarProgresso(p) {
             fetch('/leitor/salvar-progresso', {
                 method: 'POST',
@@ -163,72 +173,45 @@ $titulo = htmlspecialchars($livro['titulo']) . ' - Leitor';
             });
         }
 
-        let marcadores = [];
-        async function carregarMarcadores() {
-            const r = await fetch(`/marcadores/listar?livro_id=${livroId}`);
-            const d = await r.json();
-            if (d.success) {
-                marcadores = d.marcadores;
-                document.getElementById('countMarcadores').textContent = marcadores.length;
-                atualizarListaMarcadores();
-            }
-        }
-
-        function atualizarListaMarcadores() {
-            const lista = document.getElementById('listaMarcadores');
-            lista.innerHTML = marcadores.length ? '' : '<p class="text-center py-4 text-gray-400">Sem marcadores</p>';
-            marcadores.forEach(m => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer';
-                item.innerHTML = `
-                    <div onclick="irParaPagina(${m.pagina})" class="flex-1">
-                        <div class="text-sm font-bold dark:text-white">${m.titulo}</div>
-                        <div class="text-xs text-gray-500">Página ${m.pagina}</div>
-                    </div>
-                    <button onclick="deletarMarcador(${m.id})" class="text-gray-400 hover:text-red-500 px-2"><i class="fas fa-trash-alt"></i></button>
-                `;
-                lista.appendChild(item);
-            });
-        }
-
-        document.getElementById('adicionarMarcador').onclick = async () => {
-            const t = prompt('Nome do marcador:', `Página ${pageNum}`);
-            if (t) {
-                const r = await fetch('/marcadores/adicionar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ livro_id: livroId, pagina: pageNum, titulo: t })
-                });
-                if ((await r.json()).success) carregarMarcadores();
-            }
-        };
-
-        function irParaPagina(p) { pageNum = p; queueRenderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); }
-        async function deletarMarcador(id) {
-            if (confirm('Excluir marcador?')) {
-                await fetch('/marcadores/deletar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, livro_id: livroId })
-                });
-                carregarMarcadores();
-            }
-        }
-
-        document.getElementById('verMarcadores').onclick = () => document.getElementById('modalMarcadores').classList.remove('hidden');
-        document.getElementById('fecharModalMarcadores').onclick = () => document.getElementById('modalMarcadores').classList.add('hidden');
-
-        document.getElementById('toggleDarkModeLeitor').onclick = async () => {
+        // Script de Marcadores e Tema simplificado
+        const toggleDark = async () => {
             const r = await fetch('/preferencias/dark-mode', { method: 'POST' });
             const d = await r.json();
             if (d.success) {
                 document.documentElement.classList.toggle('dark');
-                document.querySelector('#toggleDarkModeLeitor i').classList.toggle('fa-sun', d.dark_mode);
-                document.querySelector('#toggleDarkModeLeitor i').classList.toggle('fa-moon', !d.dark_mode);
+                document.querySelector('#toggleDarkModeLeitor i').className = d.dark_mode ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
             }
         };
+        document.getElementById('toggleDarkModeLeitor').onclick = toggleDark;
 
-        carregarMarcadores();
+        // Modal Marcadores
+        document.getElementById('verMarcadores').onclick = () => {
+            document.getElementById('modalMarcadores').classList.remove('hidden');
+            carregarMarcadores();
+        };
+        document.getElementById('fecharModalMarcadores').onclick = () => document.getElementById('modalMarcadores').classList.add('hidden');
+        
+        async function carregarMarcadores() {
+            const r = await fetch(`/marcadores/listar?livro_id=${livroId}`);
+            const d = await r.json();
+            const lista = document.getElementById('listaMarcadores');
+            lista.innerHTML = d.marcadores.length ? '' : '<p class="text-center py-4">Sem marcadores</p>';
+            d.marcadores.forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer';
+                item.innerHTML = `<div onclick="irParaPagina(${m.pagina})">${m.titulo} (p. ${m.pagina})</div>`;
+                lista.appendChild(item);
+            });
+            document.getElementById('countMarcadores').textContent = d.marcadores.length;
+        }
+
+        function irParaPagina(p) { pageNum = p; renderPage(p); document.getElementById('modalMarcadores').classList.add('hidden'); }
+
+        // Atalhos teclado
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') document.getElementById('prev-page').click();
+            if (e.key === 'ArrowRight') document.getElementById('next-page').click();
+        });
     </script>
 </body>
 </html>
