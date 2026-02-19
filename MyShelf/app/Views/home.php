@@ -55,8 +55,7 @@ $titulo = 'Biblioteca Digital - Organize seus PDFs';
             
             <div class="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0 mb-12">
                 <a href="/register" class="px-8 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition font-bold text-lg">
-                    <i class="fas fa-rocket mr-2"></i>
-                    Começar Agora - Grátis
+                    Começar Agora
                 </a>
                 <a href="/login" class="px-8 py-4 border-2 border-white rounded-lg hover:bg-white hover:bg-opacity-10 transition font-bold text-lg">
                     <i class="fas fa-sign-in-alt mr-2"></i>
@@ -74,7 +73,7 @@ $titulo = 'Biblioteca Digital - Organize seus PDFs';
                     <div class="bg-white bg-opacity-20 rounded-lg p-6 text-center">
                         <i class="fas fa-folder-open text-4xl md:text-5xl mb-4"></i>
                         <h3 class="font-bold text-lg mb-2">Coleções</h3>
-                        <p class="text-sm text-blue-100">Organize em coleções com cores personalizadas</p>
+                        <p class="text-sm text-blue-100">Organize em coleções personalizadas</p>
                     </div>
                     <div class="bg-white bg-opacity-20 rounded-lg p-6 text-center">
                         <i class="fas fa-book-reader text-4xl md:text-5xl mb-4"></i>
@@ -112,7 +111,7 @@ $titulo = 'Biblioteca Digital - Organize seus PDFs';
                 </div>
                 <h3 class="text-xl font-bold mb-4 text-gray-800">Capas Geradas</h3>
                 <p class="text-gray-600">
-                    Capas coloridas geradas automaticamente ou faça upload da sua própria
+                    Capas geradas automaticamente ou faça upload da sua própria
                 </p>
             </div>
             
