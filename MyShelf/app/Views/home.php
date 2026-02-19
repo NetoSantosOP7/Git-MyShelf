@@ -58,7 +58,6 @@ $titulo = 'Biblioteca Digital - Organize seus PDFs';
                     Começar Agora
                 </a>
                 <a href="/login" class="px-8 py-4 border-2 border-white rounded-lg hover:bg-white hover:bg-opacity-10 transition font-bold text-lg">
-                    <i class="fas fa-sign-in-alt mr-2"></i>
                     Já Tenho Conta
                 </a>
             </div>
